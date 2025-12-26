@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'forgot_password_page.dart';
-import '../utils/environment.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-String _loginUrl = '';
+import '../utils/environment.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -19,51 +19,52 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
   bool _obscurePassword = true;
+  final _storage = const FlutterSecureStorage();
 
   void _login() {
     if (_formKey.currentState!.validate()) {
-      final email = _emailController.text;
-      final senha = _passwordController.text;
-      _fazerLogin(email, senha);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _setupApiUrl();
-  }
-
-  Future<void> _setupApiUrl() async {
-    final isEmulator = await isRunningOnEmulator();
-    setState(() {
-      _loginUrl = isEmulator
-          ? 'http://10.0.2.2:8000/login' // URL para emulador Android
-          : 'http://localhost:8000/login'; // URL para dispositivo físico ou em desktop
-    });
-  }
-
-  Future<void> _fazerLogin(String email, String senha) async {
-    final response = await http.post(
-      Uri.parse(_loginUrl),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email, 'senha': senha}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final accessToken = data['access_token'];
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', accessToken);
-      await prefs.setString('userEmail', email);
-
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('E-mail ou senha inválidos')),
+      _doLogin(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
     }
+  }
+
+  Future<void> _doLogin(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse("${Environment.apiBaseUrl}/auth/login"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final accessToken = data['access_token'];
+
+        await _storage.write(
+          key: 'access_token',
+          value: accessToken,
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        final error = jsonDecode(response.body);
+        _showError(error['detail'] ?? 'Invalid email or password');
+      }
+    } catch (_) {
+      _showError('Unable to connect to server');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -78,8 +79,11 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.account_balance_wallet_rounded,
-                    size: 64, color: Colors.blue),
+                const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  size: 64,
+                  color: Colors.blue,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'MyWallet',
@@ -96,22 +100,22 @@ class _LoginPageState extends State<LoginPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: const Icon(Icons.email),
                   ),
-                  validator: (value) => value == null || !value.contains('@')
-                      ? 'Digite um e-mail válido'
-                      : null,
+                  validator: (value) => value != null && value.contains('@')
+                      ? null
+                      : 'Enter a valid email',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Senha',
+                    labelText: 'Password',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -125,28 +129,26 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                   ),
-                  validator: (value) => value != null && value.length >= 8
+                  validator: (value) => value != null && value.length >= 6
                       ? null
-                      : 'Senha inválida',
+                      : 'Invalid password',
                 ),
                 const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordPage()),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.blue, // Força a cor azul no texto
-                    ),
-                    child: const Text('Esqueceu a senha?'),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                // Align(
+                //   alignment: Alignment.centerRight,
+                //   child: TextButton(
+                //     onPressed: () {
+                //       Navigator.push(
+                //         context,
+                //         MaterialPageRoute(
+                //           builder: (_) => const ForgotPasswordPage(),
+                //         ),
+                //       );
+                //     },
+                //     child: const Text('Forgot password?'),
+                //   ),
+                // ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -159,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Acessar'),
+                    child: const Text('Login'),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -167,16 +169,7 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () {
                     Navigator.pushNamed(context, '/register');
                   },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                    side: const BorderSide(color: Colors.blue),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Criar Conta'),
+                  child: const Text('Create account'),
                 ),
               ],
             ),

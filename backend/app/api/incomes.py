@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.income import Income
 from app.schemas.income import IncomeCreate, IncomeResponse
+from app.api.ler_token import get_current_user
 
 router = APIRouter(prefix="/incomes", tags=["Incomes"])
 
@@ -19,11 +20,11 @@ def get_db():
 @router.post("/", response_model=IncomeResponse)
 def create_income(
     data: IncomeCreate,
-    user_id: int,  # depois virá do JWT
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     income = Income(
-        user_id=user_id,
+        user_id=current_user.id,
         description=data.description,
         amount=data.amount,
         received_date=data.received_date,
@@ -39,15 +40,15 @@ def create_income(
 
 @router.get("/total")
 def get_total_incomes(
-    user_id: int,
     month: int = Query(..., ge=1, le=12),
     year: int = Query(..., ge=1900),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     target_date = date(year, month, 1)
 
     incomes = db.query(Income).filter(
-        Income.user_id == user_id
+        Income.user_id == current_user.id
     ).all()
 
     total = 0
@@ -70,7 +71,7 @@ def get_total_incomes(
                 total += i.amount
 
     return {
-        "user_id": user_id,
+        "user_id": current_user.id,
         "month": month,
         "year": year,
         "total": total
@@ -78,14 +79,14 @@ def get_total_incomes(
 
 @router.get("/", response_model=list[IncomeResponse])
 def list_incomes(
-    user_id: int,
     month: int,
     year: int,
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     target_date = date(year, month, 1)
     incomes = db.query(Income).filter(
-        Income.user_id == user_id
+        Income.user_id == current_user.id
     ).all()
 
     result = []

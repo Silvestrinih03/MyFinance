@@ -1,16 +1,11 @@
-import 'dart:io';
-import 'package:device_info_plus/device_info_plus.dart';
+class Environment {
+  static const bool isProduction = false;
 
-Future<bool> isRunningOnEmulator() async {
-  final deviceInfo = DeviceInfoPlugin();
-
-  if (Platform.isAndroid) {
-    final androidInfo = await deviceInfo.androidInfo;
-    return !androidInfo.isPhysicalDevice;
-  } else if (Platform.isIOS) {
-    final iosInfo = await deviceInfo.iosInfo;
-    return !iosInfo.isPhysicalDevice;
-  } else {
-    return false;
+  static String get apiBaseUrl {
+    if (isProduction) {
+      return "https://SEU-BACKEND.up.railway.app";
+    } else {
+      return "http://10.0.2.2:8000";
+    }
   }
 }

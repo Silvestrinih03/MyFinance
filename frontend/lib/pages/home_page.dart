@@ -104,9 +104,9 @@ class _HomePageState extends State<HomePage> {
         isEmulator ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
     setState(() {
       _userApiUrl = '$baseUrl/me';
-      _receitasUrl = '$baseUrl/total-receitas';
-      _despesasUrl = '$baseUrl/total-despesas';
-      _dadosUsuarioUrl = '$baseUrl/get-usuario';
+      _receitasUrl = '$baseUrl/incomes/total';
+      _despesasUrl = '$baseUrl/expenses/total';
+      _dadosUsuarioUrl = '$baseUrl/me';
     });
     await _getUserEmail();
     await _loadData();
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
 
     if (token == null || userId == null) return null;
 
-    final url = '$_dadosUsuarioUrl?id_login=$userId';
+    final url = _dadosUsuarioUrl;
 
     try {
       final response = await http.get(
@@ -201,10 +201,10 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final receitasData = await _fetchData(
-          '$_receitasUrl?id_login=$userId&mes=$mes&ano=$selectedYear');
+          '$_receitasUrl?user_id=$userId&month=$mes&year=$selectedYear');
 
       final despesasData = await _fetchData(
-          '$_despesasUrl?id_login=$userId&mes=$mes&ano=$selectedYear');
+          '$_despesasUrl?user_id=$userId&month=$mes&year=$selectedYear');
 
       setState(() {
         receitas = receitasData['total']!;
@@ -309,13 +309,13 @@ class _HomePageState extends State<HomePage> {
             onPressed: () async {
               final dados = await _getDadosUsuario();
               if (dados != null && context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ConfiguracoesPage(dadosUsuario: dados),
-                  ),
-                );
+                // Navigator.push(
+                //   // context,
+                //   // MaterialPageRoute(
+                //   //   builder: (context) =>
+                //   //       ConfiguracoesPage(dadosUsuario: dados),
+                //   // ),
+                // );
               }
             },
           ),
@@ -414,31 +414,31 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.pie_chart),
-              label: const Text('Ver Dashboard'),
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final userId = prefs.getString('userId');
-                if (userId != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          DashboardScreen(idLogin: int.parse(userId)),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('ID do usuário não encontrado')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
+            // ElevatedButton.icon(
+            //   icon: const Icon(Icons.pie_chart),
+            //   label: const Text('Ver Dashboard'),
+            //   onPressed: () async {
+            //     final prefs = await SharedPreferences.getInstance();
+            //     final userId = prefs.getString('userId');
+            //     if (userId != null) {
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) =>
+            //               DashboardScreen(idLogin: int.parse(userId)),
+            //         ),
+            //       );
+            //     } else {
+            //       ScaffoldMessenger.of(context).showSnackBar(
+            //         const SnackBar(
+            //             content: Text('ID do usuário não encontrado')),
+            //       );
+            //     }
+            //   },
+            //   style: ElevatedButton.styleFrom(
+            //     padding: const EdgeInsets.symmetric(vertical: 16),
+            //   ),
+            // ),
           ],
         ),
       ),

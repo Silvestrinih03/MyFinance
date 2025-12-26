@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.models import login as login_model
+from app.models.user import User
 from app.utils import token
 from app.database import SessionLocal
 
@@ -21,7 +21,7 @@ def get_current_user(token_str: str = Depends(oauth2_scheme), db: Session = Depe
     if email is None:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
-    user = db.query(login_model.Login).filter_by(email=email).first()
+    user = db.query(User).filter_by(email=email).first()
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
@@ -32,5 +32,6 @@ def get_current_user(token_str: str = Depends(oauth2_scheme), db: Session = Depe
 def get_user_data(current_user = Depends(get_current_user)):
     return {
         "id": current_user.id,
-        "email": current_user.email
+        "email": current_user.email,
+        "nome": current_user.nome
     }
