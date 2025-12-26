@@ -1,5 +1,6 @@
 # backend secrets
 backend/.env
+.env
 
 # logs
 *.log

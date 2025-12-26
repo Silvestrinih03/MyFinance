@@ -1,30 +1,20 @@
-from jose import jwt, JWTError
 from datetime import datetime, timedelta
+from jose import jwt
+import os
 
-SECRET_KEY = "sua_chave_secreta_muito_segura"
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-def gerar_token_acesso(email: str, expira_em_minutos: int = ACCESS_TOKEN_EXPIRE_MINUTES):
-    expira = datetime.utcnow() + timedelta(minutes=expira_em_minutos)
-    payload = {"sub": email, "exp": expira}
+
+def create_access_token(subject: str):
+    expire = datetime.utcnow() + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    payload = {
+        "sub": subject,
+        "exp": expire
+    }
+
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-def validar_token_acesso(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")  # Retorna o e-mail do usuário
-    except JWTError:
-        return None
-
-def gerar_token_reset(email: str, expira_em_minutos: int = 120):
-    expira = datetime.utcnow() + timedelta(minutes=expira_em_minutos)
-    payload = {"sub": email, "exp": expira}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-def validar_token_reset(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")  # retorna o e-mail
-    except JWTError:
-        return None

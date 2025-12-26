@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.models import login as login_model
 from app.utils import token
-from app.db import SessionLocal
+from app.database import SessionLocal
 
 router = APIRouter()
 
